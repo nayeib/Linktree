@@ -1,0 +1,76 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Naytools Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="page-header">
+      <div class="brand-badge">N</div>
+      <div class="brand-copy">
+        <strong class="brand-title">Naytools Hub</strong>
+        <p class="brand-tagline">Pasarela visual novel para X, F95Zone, Patreon e Itch.io</p>
+      </div>
+    </header>
+
+    <main class="main-grid">
+      <section class="links-panel" aria-label="Enlaces Naytools">
+        <div class="panel-title">Enlaces principales</div>
+        <div class="links-list" id="linksList"></div>
+      </section>
+
+      <aside class="preview-panel">
+        <div class="character-panel">
+          <div class="character-stage">
+            <img id="characterSprite" class="character-sprite" src="character/default/idle_000.png" alt="Personaje animado Naytools">
+          </div>
+          <p class="stage-hint">Selecciona un enlace para ver la animación y el destino</p>
+        </div>
+
+        <article class="preview-card" id="previewCard">
+          <div class="preview-brand">
+            <div class="brand-icon" id="brandIcon">N</div>
+            <div>
+              <strong class="brand-name" id="brandName">Destino Naytools</strong>
+              <p class="brand-subtitle" id="brandCaption">Vista previa de destino</p>
+            </div>
+          </div>
+          <div class="preview-copy">
+            <h2 class="preview-title" id="previewTitle">Elige un recorrido para ver más</h2>
+            <p class="preview-description" id="previewDescription">Cada destino muestra una tarjeta con estilo, nombre y mensaje directo.</p>
+            <div class="preview-url" id="previewUrl">https://x.com/Naytools</div>
+          </div>
+        </article>
+      </aside>
+    </main>
+
+    <div class="modal-overlay" id="modalOverlay" hidden></div>
+    <section class="modal-panel" id="confirmModal" aria-hidden="true">
+      <div class="modal-head">
+        <span class="modal-badge" id="modalBrand">Confirmar destino</span>
+        <button class="modal-close" id="modalClose" type="button" aria-label="Cerrar">
+          ×
+        </button>
+      </div>
+      <p class="modal-message" id="modalMessage">¿Seguro que deseas abrir este enlace?</p>
+      <div class="modal-details">
+        <span class="modal-title" id="modalTitle">Destino Naytools</span>
+        <span class="modal-url" id="modalUrl">https://x.com/Naytools</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelButton" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="confirmButton" type="button">Abrir enlace</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="character.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

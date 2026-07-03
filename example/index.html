@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Anime Visual Novel Linktree</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root {
+    --transition-speed: 0.8s; 
+    --color-primary: #D32F2F; /* Rojo estilo Persona/Visual Novel */
+    --color-bg: #0A0A0A;
+    --char-scale-list: 1.6;
+    --char-scale-modal: 1.5;
+    --char-offset-y-list: 0px;
+    --char-offset-y-modal: 20px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    background: var(--color-bg);
+    overflow: hidden;
+    font-family: 'Bebas Neue', sans-serif;
+    color: white;
+}
+
+.root {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Fondo de Chispas Animadas (Partículas de Fuego) --- */
+.fire-bg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: radial-gradient(circle at center, #1a0505 0%, #050505 100%);
+    z-index: 1;
+    overflow: hidden;
+}
+
+.spark {
+    position: absolute;
+    bottom: -20px;
+    background: rgba(211, 47, 47, 0.6);
+    border-radius: 50%;
+    filter: blur(4px);
+    animation: rise infinite linear;
+}
+
+@keyframes rise {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 0;
+    }
+    10% { opacity: 0.8; }
+    90% { opacity: 0.4; }
+    100% {
+        transform: translateY(-105vh) scale(0.3);
+        opacity: 0;
+    }
+}
+
+.scanlines {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.02) 2px,
+        rgba(255,255,255,0.02) 4px
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* --- Logo --- */
+.logo-container {
+    padding: 20px;
+    z-index: 10;
+    text-align: center;
+}
+.logo {
+    font-size: 42px;
+    display: inline-block;
+    color: white;
+    text-shadow: 3px 3px 0 var(--color-primary);
+    transform: rotate(-3deg);
+    line-height: 0.9;
+}
+
+/* --- Layout Principal (Móvil First) --- */
+.main-content {
+    flex: 1;
+    display: flex;
+    position: relative;
+    z-index: 10;
+    padding: 10px;
+    height: calc(100% - 100px);
+}
+
+/* Lista de Links a la izquierda */
+.links-side {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 15px;
+    padding-left: 10px;
+    transition: transform 0.5s ease;
+    position: relative;
+    z-index: 20;
+}
+
+.links-side.hidden {
+    transform: translateX(-150%);
+}
+
+/* Placeholder que mantiene el 40% del layout flex */
+.character-placeholder {
+    width: 40%;
+    flex-shrink: 0;
+}
+
+
+.link-box {
+    width: 100%;
+    background: #000;
+    border: 3px solid white;
+    padding: 15px;
+    font-size: 22px;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+    transform: rotate(-2deg);
+    box-shadow: -5px 5px 0 var(--color-primary);
+    transition: all 0.1s ease;
+    font-family: 'Bebas Neue', sans-serif;
+}
+.link-box:active {
+    transform: rotate(-2deg) translate(-3px, 3px);
+    box-shadow: 0px 0px 0 var(--color-primary);
+}
+.link-box:nth-child(even) {
+    transform: rotate(2deg);
+    box-shadow: 5px 5px 0 var(--color-primary);
+}
+.link-box:nth-child(even):active {
+    transform: rotate(2deg) translate(3px, 3px);
+    box-shadow: 0px 0px 0 var(--color-primary);
+}
+
+.link-box span {
+    display: block;
+    font-size: 12px;
+    font-family: 'Permanent Marker', cursive;
+    color: var(--color-primary);
+    margin-top: 2px;
+}
+
+/* Contenedor del Personaje a la derecha (overlay independiente) */
+.character-side {
+    width: 40%;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    transition: transform 0.6s cubic-bezier(.77, 0, .17, 1), height 0.6s cubic-bezier(.77, 0, .17, 1), top 0.6s cubic-bezier(.77, 0, .17, 1), bottom 0.6s cubic-bezier(.77, 0, .17, 1), opacity 0.6s ease;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.character-side.scale-list {
+    transform: translateY(-50%) scale(var(--char-scale-list)) translateY(var(--char-offset-y-list));
+    pointer-events: none;
+    height: 500px;
+    bottom: 0px;
+    top: auto;
+    transition: transform 0.6s cubic-bezier(.77, 0, .17, 1), height 0.6s cubic-bezier(.77, 0, .17, 1), top 0.6s cubic-bezier(.77, 0, .17, 1), bottom 0.6s cubic-bezier(.77, 0, .17, 1), width 0.6s cubic-bezier(.77, 0, .17, 1);
+}
+
+.character-side.center-stage {
+    width: 100%;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    height: 70%;
+    justify-content: center;
+    z-index: 5;
+    transition: transform 0.6s cubic-bezier(.77, 0, .17, 1), height 0.6s cubic-bezier(.77, 0, .17, 1), width 0.6s cubic-bezier(.77, 0, .17, 1);
+}
+
+.character-display {
+    width: 140%;
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    transition: background-image 0.1s ease, transform 0.2s ease;
+    will-change: transform;
+    transform-origin: bottom center;
+}
+
+/* Smooth breathing animation anchored to the bottom (feet) */
+@keyframes breath {
+    0%   { transform: translateY(0px) scaleY(1) rotate(0deg); }
+    25%  { transform: translateY(-1.2px) scaleY(1.02) rotate(0.18deg); }
+    50%  { transform: translateY(0px) scaleY(1) rotate(0deg); }
+    75%  { transform: translateY(1.2px) scaleY(0.98) rotate(-0.18deg); }
+    100% { transform: translateY(0px) scaleY(1) rotate(0deg); }
+}
+.breathing { animation: breath 2.0s linear infinite; transform-origin: bottom center; }
+
+/* List mode: scale character image x2 on small screens only, anchor from bottom so feet stay in place. */
+.character-side.scale-list {
+    z-index: 5;
+    pointer-events: none;
+    height: 500px;
+    bottom: 0px;
+    top: auto;
+}
+.character-side.scale-list .character-display {
+    transform-origin: bottom center;
+    height: 100%;
+    width: 100%;
+}
+
+@media (max-width: 640px) {
+  .character-side.scale-list .character-display { transform: scale(2); }
+}
+
+/* Ensure links are above the character for depth */
+.links-side { position: relative; z-index: 20; }
+.character-side { z-index: 10; }
+
+/* --- UI del Modal VN --- */
+.modal-container {
+    position: absolute;
+    bottom: -150%;
+    left: 5%;
+    width: 90%;
+    background: rgba(0, 0, 0, 0.95);
+    border: 4px solid var(--color-primary);
+    padding: 20px;
+    z-index: 20;
+    transform: skewX(-5deg);
+    transition: bottom 0.5s cubic-bezier(.17, .84, .44, 1);
+    box-shadow: 0 0 20px rgba(213, 47, 47, 0.4);
+}
+
+.modal-container.active {
+    bottom: 25px;
+}
+
+.modal-text {
+    font-size: 24px;
+    margin-bottom: 20px;
+    transform: skewX(5deg);
+    letter-spacing: 1px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    transform: skewX(5deg);
+}
+
+.modal-btn {
+    padding: 8px 25px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    cursor: pointer;
+    background: black;
+    color: white;
+    border: 2px solid white;
+}
+.btn-confirm {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* --- Efecto de Transición de Espada / Máscara --- */
+.transition-mask {
+    position: absolute;
+    width: 350vw; 
+    height: 350vh;
+    top: -120vh;
+    left: -400vw;
+    
+    /* 1. CAMBIO: Degradado radial que se desvanece a negro hacia las esquinas */
+    background: radial-gradient(circle, var(--color-primary) 20%, #000000 80%);
+    
+    transform: rotate(30deg);
+    
+    /* Añadimos opacity y filter a la transición para que cambien suavemente junto al movimiento */
+    transition: 
+        left var(--transition-speed) cubic-bezier(.77, 0, .17, 1),
+        opacity var(--transition-speed) ease,
+        filter var(--transition-speed) ease; 
+        
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden; /* Para contener los logos */
+    
+    /* Estado base por si acaso */
+    opacity: 0.4;
+    filter: brightness(0.5);
+}
+
+/* ESTADO INACTIVO (Espera en el lateral) */
+.transition-mask.side-visible {
+    left: -350vw;
+    opacity: 0.6;           /* Se mantiene un poco sutil/transparente */
+    filter: brightness(0.6); /* Más apagado, tirando a oscuro */
+}
+
+/* ESTADO ACTIVO (Cruza o se muestra con fuerza) */
+.transition-mask.active {
+    left: 150vw;
+    opacity: 1;             /* Recupera total visibilidad */
+    filter: brightness(1);  /* Se enciende por completo con su color real */
+}
+
+/* Logos fluyendo en el río */
+ .river-logo {
+      position: absolute;
+      height: 80px;
+      width: auto;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 1;
+       animation: flowDiagonal 4s linear infinite;
+       will-change: transform, opacity;
+      transition: opacity 0.5s ease;
+  }
+
+  .river-logo.fading {
+      opacity: 0;
+  }
+ 
+ @keyframes flowDiagonal {
+      0% { transform: rotate(-30deg) translate(0, 0); }
+      100% { transform: rotate(-30deg) translate(var(--tx, 150px), var(--ty, 75px)); }
+  }
+
+/* Efecto de tinta */
+.ink-splash {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: ink 0.4s ease-out forwards;
+    z-index: 200;
+}
+@keyframes ink {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(3); opacity: 0; }
+}
+</style>
+</head>
+<body>
+<div class="root">
+    <!-- Capas de Fondo -->
+    <div class="fire-bg" id="fire-bg"></div>
+    <div class="scanlines"></div>
+    
+    <!-- Logo -->
+    <div class="logo-container">
+        <h1 class="logo">Naytools LINKTREE<br> </h1>
+    </div>
+    
+    <!-- Zona de Contenido -->
+    <div class="main-content">
+        <!-- Lista de enlaces -->
+        <div class="links-side" id="links-container">
+            <!-- Los links se autogeneran desde el Script -->
+        </div>
+        
+        <!-- Placeholder para mantener layout flex, character es overlay -->
+        <div class="character-placeholder"></div>
+    </div>
+    
+    <!-- Overlay de Personaje (independiente del layout flex) -->
+    <div class="character-side" id="character-wrapper">
+        <div class="character-display" id="hero-character"></div>
+    </div>
+    
+    <!-- Ventana de Diálogo Visual Novel (Modal) -->
+    <div class="modal-container" id="vn-modal">
+        <div class="modal-text" id="modal-prompt">Are you sure you want to visit this page?</div>
+        <div class="modal-actions">
+            <button class="modal-btn" onclick="closeVNModal()">CANCEL</button>
+            <button class="modal-btn btn-confirm" id="modal-confirm-btn">PROCEED</button>
+        </div>
+    </div>
+    
+    <!-- Cortina de transición -->
+    <div class="transition-mask" id="slash-transition"></div>
+</div>
+
+<script src="character.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

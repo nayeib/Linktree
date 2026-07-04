@@ -1,119 +1,138 @@
 const CharacterController = (() => {
-  const spriteElement = document.getElementById('characterSprite');
+  let element = null;
   const defaultPrefix = 'default';
-  const defaultConfig = { idle: 1, blink: 1 };
-
+  const defaultFrames = { idle: 1, blink: 1 };
   let currentPrefix = defaultPrefix;
-  let currentFrames = { ...defaultConfig };
-  let currentState = 'idle';
-  let stateTimer = null;
+  let frames = { ...defaultFrames };
+  let state = 'idle';
   let frameIndex = 0;
+  let intervalId = null;
+  let breathingId = null;
 
-  function pad(number) {
-    return String(number).padStart(3, '0');
+  function pad(n){ return String(n).padStart(3,'0'); }
+  function buildPath(prefix, st, idx){
+    return `../character/${prefix}/${st}_${pad(idx)}.png`;
   }
 
-  function buildPath(prefix, state, index) {
-    return `character/${prefix}/${state}_${pad(index)}.png`;
+  function setElement(el){ element = el; }
+  function clearIntervalIfAny(){ if(intervalId){ clearInterval(intervalId); intervalId = null; } }
+  function clearBreathing(){ if(breathingId){ clearInterval(breathingId); breathingId = null; } }
+
+  function startBreathing(){
+    clearBreathing();
+    if(!element) return;
+      // Use CSS-driven breathing for a perfectly smooth loop.
+      if (!element) return;
+      element.classList.add('breathing');
+      // ensure transform-origin is bottom so scaling anchors at the feet
+      element.style.transformOrigin = 'bottom center';
   }
 
-  function setSource(src) {
-    if (!spriteElement) return;
-    spriteElement.src = src;
-  }
+  function stopBreathing(){ clearBreathing(); if(element){ element.classList.remove('breathing'); element.style.transform = ''; element.style.transformOrigin = ''; } }
 
-  function clearTimers() {
-    if (stateTimer) {
-      clearTimeout(stateTimer);
-      clearInterval(stateTimer);
-    }
-    stateTimer = null;
-  }
-
-  // Probe how many frames exist for a given prefix/state by loading images until failure.
-  function probeFramesRoot(prefix, pose, maxTry = 16){
+  // Probe the filesystem (via Image loading) to find how many frames actually exist.
+  // Returns a Promise resolving to the number of frames found (at least 1 if a base frame exists).
+  function probeFrames(prefix, pose, maxTry = 16){
     return new Promise((resolve) => {
       let found = 0;
       let idx = 0;
       function tryNext(){
         if(idx >= maxTry) return resolve(found);
         const img = new Image();
-        const p = buildPath(prefix, pose, idx);
+        const testPath = buildPath(prefix, pose, idx);
         img.onload = () => { found = idx + 1; idx += 1; tryNext(); };
         img.onerror = () => { resolve(found); };
-        img.src = p;
+        // start load
+        img.src = testPath;
       }
       tryNext();
-    }).then(c => Math.max(1, c));
+    }).then(count => Math.max(1, count));
   }
 
-  function animateState(state) {
-    clearTimers();
-    currentState = state;
-    frameIndex = 0;
-    const count = Math.max(1, currentFrames[state] || 1);
-    const safeCount = count > 1 ? count : 1;
-    const interval = state === 'idle' ? 180 : 120;
-
-    function nextFrame() {
-      const safeIndex = safeCount <= 1 ? 0 : frameIndex % safeCount;
-      const path = buildPath(currentPrefix, state, safeIndex);
-      setSource(path);
-      frameIndex = (safeIndex + 1) % safeCount;
-      if (state !== 'idle' && frameIndex === 0) {
-        playState('idle');
-      }
-    }
-
-    nextFrame();
-    if (state === 'idle') {
-      stateTimer = setInterval(nextFrame, interval);
-    } else {
-      stateTimer = setTimeout(() => {
-        nextFrame();
-      }, interval);
-    }
+  function resolveFrameCount(pose){
+    const count = frames[pose] || 1;
+    return count > 1 ? count : 1;
   }
 
-  function playState(state) {
-    if (!spriteElement) return;
-    if (state === 'blink') {
-      animateState('blink');
+  function updateFrame(){
+    if(!element) return;
+    const pose = state === 'blink' ? 'blink' : state;
+    const count = resolveFrameCount(pose);
+    const safeIndex = count <= 1 ? 0 : frameIndex % count;
+    const path = buildPath(currentPrefix, pose, safeIndex);
+    element.style.backgroundImage = `url('${path}')`;
+    element.style.backgroundSize = 'contain';
+    element.style.backgroundPosition = 'center bottom';
+    element.style.backgroundRepeat = 'no-repeat';
+
+    if (count <= 1) {
+      frameIndex = 0;
       return;
     }
-    animateState('idle');
+
+    frameIndex = (frameIndex + 1) % count;
   }
 
-  function switchCharacter(prefix, frameConfig = {}) {
+  function playLoop(){
+    clearIntervalIfAny();
+    startBreathing();
+    const delay = state === 'idle' ? 180 : 120;
+    updateFrame();
+    intervalId = setInterval(updateFrame, delay);
+  }
+
+  function switchCharacter(prefix, frameConfig){
     currentPrefix = prefix || defaultPrefix;
-    // conservative defaults
-    currentFrames = { idle: 1, blink: 1 };
-    playState('idle');
-    // async probe of real counts
-    (async ()=>{
-      try{
-        const maxIdle = Math.min(frameConfig.idle || defaultConfig.idle, 30);
-        const maxBlink = Math.min(frameConfig.blink || defaultConfig.blink, 30);
+    // start with conservative defaults (1 frame each) so we don't try to load missing files
+    frames = {
+      idle: 1,
+      blink: 1
+    };
+    state = 'idle';
+    frameIndex = 0;
+    // start playback immediately with safe single-frame defaults
+    playLoop();
+
+    // probe asynchronously (non-blocking). When we discover real counts, update and restart loop.
+    (async () => {
+      const maxIdle = Math.min(frameConfig?.idle || defaultFrames.idle, 30);
+      const maxBlink = Math.min(frameConfig?.blink || defaultFrames.blink, 30);
+      try {
         const [idleCount, blinkCount] = await Promise.all([
-          probeFramesRoot(currentPrefix, 'idle', maxIdle),
-          probeFramesRoot(currentPrefix, 'blink', maxBlink)
+          probeFrames(currentPrefix, 'idle', maxIdle),
+          probeFrames(currentPrefix, 'blink', maxBlink)
         ]);
-        currentFrames.idle = idleCount;
-        currentFrames.blink = blinkCount;
-        playState('idle');
-      }catch(e){/* keep defaults */}
+        frames.idle = idleCount || 1;
+        frames.blink = blinkCount || 1;
+        // restart loop so new counts take effect
+        frameIndex = 0;
+        playLoop();
+      } catch (e){
+        // on any error keep defaults
+      }
     })();
   }
 
-  spriteElement?.addEventListener('error', () => {
-    if (currentPrefix !== defaultPrefix) {
-      currentPrefix = defaultPrefix;
-      playState('idle');
+  function playState(st){
+    state = st || 'idle';
+    frameIndex = 0;
+    clearIntervalIfAny();
+    if (state === 'blink') {
+      updateFrame();
+      intervalId = setInterval(() => {
+        updateFrame();
+        if (frameIndex === 0) {
+          clearInterval(intervalId);
+          intervalId = null;
+          state = 'idle';
+          frameIndex = 0;
+          playLoop();
+        }
+      }, 120);
+      return;
     }
-  });
+    playLoop();
+  }
 
-  return {
-    switchCharacter,
-    playState
-  };
+  return { setElement, switchCharacter, playState, stopBreathing };
 })();
